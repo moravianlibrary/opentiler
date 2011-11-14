@@ -16,6 +16,7 @@ import EasyDialogs
 #from zoomify import Zoomify
 
 import math, os
+import shutil
 
 class Zoomify(object):
 	"""
@@ -122,47 +123,71 @@ def write_jpeg(path, dstile, dswatermark ):
 	if not os.path.exists(dirname):
 		os.makedirs(dirname)
 	if dswatermark:
-		dsmark = Image.new('RGBA', dstile.size, (0,0,0,0))
-		dsmark.paste( dswatermark, ( randrange(0, dstile.size[0]-dswatermark.size[0]), randrange(0, dstile.size[1]-dswatermark.size[1]) ))
-		dstile = Image.composite( dsmark, dstile, dsmark )
+		dsmark = Image.new('RGBA', dstile.size, (0,0,0,0))	
+		# empty random range bug fix
+		end0 = dstile.size[0]-dswatermark.size[0]
+		end1 = dstile.size[1]-dswatermark.size[1]
+		if end0 > 0 and end1 > 0:
+			dsmark.paste(dswatermark, (randrange(0, end0), randrange(0, end1)))
+			dstile = Image.composite(dsmark, dstile, dsmark)
 	dstile.save(path, "JPEG", quality=85)
 
-def main(filename, progressbar):
+
+
+
+def create_root(rootPath, exepath, zoomifyViewer):
+	if not os.path.exists(rootPath):
+		os.makedirs(rootPath)
+	srcDirectory = os.path.join(exepath, 'data')
+	srcFile = "OpenLayers.js"
+	if zoomifyViewer:
+		srcFile = "ZoomifyViewer.swf"
+	else:
+		imgFolder = os.path.join(srcDirectory, "img")
+		imgDstFolder = os.path.join(rootPath, "img")	
+		if not os.path.exists(imgDstFolder):	
+			 shutil.copytree(imgFolder, imgDstFolder)
+	src = os.path.join(srcDirectory, srcFile)
+	dst = os.path.join(rootPath, srcFile)
+	shutil.copyfile(src, dst)
+
+def get_exepath():
+	exepath = os.getcwd()
+	if hasattr(sys, "frozen"):
+		exepath = os.path.dirname(sys.executable)
+	return exepath
+
+
+def main(filename, progressbar, rootPath, exepath, zoomifyViewer):
 	# open input file
 	ds = Image.open(filename)
-	width, height = ds.size
-	
+	width, height = ds.size	
 	zoomify = Zoomify( width, height )
 	tilecount = zoomify.tileCountUpToTier[zoomify.numberOfTiers]
 
 	if progressbar:
 		progressbar.set(0, tilecount)
 
-	# Where is the executable file on the disk?
-	exepath = os.getcwd()
-	if hasattr(sys, "frozen"):
-		exepath = os.path.dirname(sys.executable)
-
 	if os.path.exists( os.path.join(exepath, "watermark.png")):
 		dswatermark = reduce_opacity( Image.open( os.path.join(exepath, "watermark.png")), 0.1 )
 	else:
 		dswatermark = None
+			
+	# create folder for the image
+	folderName =  os.path.basename(os.path.splitext(filename)[0])
+	path = os.path.join(rootPath, folderName)
+	if not os.path.exists(path):
+		os.makedirs(path)
 	
 	# write ImageProperties.xml
-
-	path = os.path.splitext(filename)[0]
-	try:
-		os.makedirs(path)
-	except:
-		path = EasyDialogs.AskFolder("Select a folder to save the tiles")
-
 	f = open(os.path.join(path,"ImageProperties.xml"),"w")
 	f.write("""<IMAGE_PROPERTIES WIDTH="%d" HEIGHT="%d" NUMTILES="%d" NUMIMAGES="1" VERSION="1.8" TILESIZE="256" />""" %
 		( width, height, tilecount))
 
-	# Write the "index.html"
-
-	s = """<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+	# Write the "index.html" with eather openLayers viewer of zoomify viewer
+	viewerText = None
+	if zoomifyViewer:
+		viewerText = """<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html><head><META http-equiv="Content-Type" content="text/html; charset=utf-8"></head><body>
 <div>
 <div align="center">
@@ -176,8 +201,8 @@ def main(filename, progressbar):
 		  	  <OBJECT CLASSID="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000" CODEBASE="http://download.macromedia.com/pub/shockwave/cabs/flash/swflash.cab#version=6,0,40,0" WIDTH="750" HEIGHT="450" ID="theMovie">
                 <PARAM NAME="FlashVars" VALUE="zoomifyImagePath=.">
                 <PARAM NAME="MENU" VALUE="FALSE">
-				<PARAM NAME="SRC" VALUE="ZoomifyViewer.swf">
-                <EMBED FlashVars="zoomifyImagePath=." SRC="ZoomifyViewer.swf" MENU="false" PLUGINSPAGE="http://www.macromedia.com/shockwave/download/index.cgi?P1_Prod_Version=ShockwaveFlash"  WIDTH="750" HEIGHT="450" NAME="theMovie"></EMBED>
+				<PARAM NAME="SRC" VALUE="../ZoomifyViewer.swf">
+                <EMBED FlashVars="zoomifyImagePath=." SRC="../ZoomifyViewer.swf" MENU="false" PLUGINSPAGE="http://www.macromedia.com/shockwave/download/index.cgi?P1_Prod_Version=ShockwaveFlash"  WIDTH="750" HEIGHT="450" NAME="theMovie"></EMBED>
               </OBJECT></TD>
 		</tr>
 	  </table>
@@ -187,7 +212,7 @@ def main(filename, progressbar):
 <table border="0" cellpadding="1" cellspacing="0" bgcolor="#FFFFFF" width="750" align="CENTER">
   <tr>
     <td align="Right">
-      <font size="1" face="arial" color="#1A4658">Powered by <a href="http://www.zoomify.com/" target="_blank">Zoomify</a>. Look at project <a href="http://www.oldmapsonline.org/" target="_blank">Old Maps Online.org</a></font>
+      <font size="1" face="arial" color="#1A4658">Powered by <a href="http://www.zoomify.com/" target="_blank">Zoomify</a>. Look at project <a href="http://help.oldmapsonline.org/" target="_blank">Old Maps Online.org</a></font>
     </td>
 
 </tr></table>
@@ -196,18 +221,76 @@ def main(filename, progressbar):
 </div>
 
 </body></html>"""
+
+	else:
+	      viewerText = """<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <style type="text/css">
+      .smallmap {
+	width: 750px;
+	height: 450px;
+      }
+    </style>    
+    <script src="../OpenLayers.js"></script>    
+
+<script type="text/javascript">
+  function init(){	
+    var width = %d;
+    var height = %d;
+    var zoomify = new OpenLayers.Layer.Zoomify("Zoomify", "./", new OpenLayers.Size(width, height));	       
+    var options = {
+	controls: [],
+	maxExtent: new OpenLayers.Bounds(0, 0, width, height),
+	maxResolution: Math.pow(2, zoomify.numberOfTiers-1),
+	numZoomLevels: zoomify.numberOfTiers,
+	units: 'pixels'
+    };
+    
+    var map = new OpenLayers.Map("map", options);
+    map.addLayer(zoomify);
+    map.addControl(new OpenLayers.Control.PanZoomBar());
+    map.addControl(new OpenLayers.Control.MouseDefaults());
+    map.addControl(new OpenLayers.Control.KeyboardDefaults());
+
+    map.setBaseLayer(zoomify);
+    map.zoomToMaxExtent();
+};
+    </script>
+
+  </head>
+  <body onload="init()">
+    <table border="0" cellpadding="1" cellspacing="0" bgcolor="#000000" width="750" align="CENTER">
+      <tr>
+	<td>
+	  <table border="0" width="100%%" bgcolor="#ffffff" cellspacing="0" cellpadding="0">
+	    <tr>
+	      <TD>
+		<div id="map" class="smallmap"></div>
+	      </TD>
+	    </tr>
+	  </table>
+	</td>
+      </tr>
+    </table>
+    <table border="0" cellpadding="1" cellspacing="0" bgcolor="#FFFFFF" width="750" align="CENTER">
+      <tr>
+	<td align="Right">
+	  <font size="1" face="arial" color="#1A4658">Powered by <a href="http://openlayers.org/" target="_blank">OpenLayers</a>. Look at project <a href="http://help.oldmapsonline.org/" target="_blank">Old Maps Online.org</a></font>
+	</td>
+      </tr>
+    </table>
+  </body>
+</html>""" % (width, height)
+
 	f = open(os.path.join(path,"index.html"),'w')
-	f.write(s)
+	f.write(viewerText)
 	f.close()
 
-	# Write the http://www.oldmapsonline.org/publish/zoomify/ZoomifyViewer.swf to local directory
-
-	import urllib2
-	urlf = urllib2.urlopen("http://www.oldmapsonline.org/publish/zoomify/ZoomifyViewer.swf","rb")
-	f = open(os.path.join(path,"ZoomifyViewer.swf"),'wb')
-	f.write( urlf.read() )
-	f.close()
-	
+	#import urllib2
+	#urlf = urllib2.urlopen("ttp://www.oldmapsonline.org/publish/zoomify/ZoomifyViewer.swf","rb")
+	#f = open(os.path.join(path,"ZoomifyViewer.swf"),'wb')
+	#f.write( urlf.read() )
+	#f.close()	
 	# generate base tiles
 
 	tileno = 0
@@ -235,15 +318,32 @@ def main(filename, progressbar):
 					print ".", 
 				# gdal.TermProgress_nocb(tileno/tilecount)
 
-	import webbrowser
-	webbrowser.open_new(os.path.join(path,"index.html"))
+	#import webbrowser
+	#webbrowser.open_new(os.path.join(path,"index.html"))
 
 
 if __name__ == "__main__":
 	import sys
+	import getopt            
 
-	if len(sys.argv)>1:
-		filenames = sys.argv[1:]
+	try:
+		opts, args = getopt.getopt(sys.argv[1:], 'z', [])
+
+	except getopt.error, msg:
+		print str(msg)
+		sys.exit(2)
+
+	exepath = get_exepath()
+	# without -z => openLayers
+	# with -z => zoomifyViewer
+	zoomifyViewer = False
+	for option, arg in opts:
+		if option in ('-z'):
+			zoomifyViewer = True
+
+
+	if len(args) > 0:
+		filenames = args[0:]
 	else:
 		filenames = []
 		try:
@@ -253,14 +353,18 @@ if __name__ == "__main__":
 			if file:
 				filenames.append(file)
 
+
+	outputPath = EasyDialogs.AskFolder("Choose folder for output.")
+	rootPath = os.path.join(outputPath, 'output')
+	create_root(rootPath, exepath, zoomifyViewer)
 	fileno = len(filenames)
-	i = 0
-	for file in filenames:
+	i = 0			
+	for file in filenames:			
 			if file == None:
 				continue
 			i += 1
 			# Display a progress bar
 			bar = EasyDialogs.ProgressBar("Tiling file %s / %s" % (i, fileno), 100, "Processing the image:\n%s" % file)
 			# TODO: This should run in a different process, so the GUI stays responsible
-			main(file, bar)
+			main(file, bar, rootPath, exepath, zoomifyViewer)
 			del bar
