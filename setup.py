@@ -1,5 +1,6 @@
 from distutils.core import setup
 import os, sys
+import glob
 
 import py2exe
 
@@ -17,4 +18,6 @@ setup(name='OpenTiler',
            'excludes':['Tkinter', 'email.Generator', 'email.Iterators', 'email.Utils'],
        }
       },
+      data_files=[("data", ["data/ZoomifyViewer.swf", "data/OpenLayers.js"]),
+      ("data\img", glob.glob("data\\img\\*"))],
 )
