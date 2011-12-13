@@ -18,6 +18,9 @@ import EasyDialogs
 import math, os
 import shutil
 
+from progress_bar import ConsoleProgressBar
+
+
 class Zoomify(object):
 	"""
 	Tiles compatible with the Zoomify viewer
@@ -158,15 +161,24 @@ def get_exepath():
 	return exepath
 
 
-def main(filename, progressbar, rootPath, exepath, zoomifyViewer):
+
+def tile(filename, dialogbar, rootPath, exepath, zoomifyViewer, current, total):
 	# open input file
 	ds = Image.open(filename)
 	width, height = ds.size	
 	zoomify = Zoomify( width, height )
 	tilecount = zoomify.tileCountUpToTier[zoomify.numberOfTiers]
-
-	if progressbar:
-		progressbar.set(0, tilecount)
+	divider = tilecount // 40
+	
+	
+	if dialogbar:
+		dialogProgressbar = EasyDialogs.ProgressBar("Tiling file %s / %s" % (current, total), 100, "Processing the image:\n%s" % filename)
+		dialogProgressbar.set(0, tilecount)
+	else:
+		prefix = "[" + str(current) + "/" + str(total) + "]"
+		#suffix = filename	
+		suffix = ""
+		consoleProgressbar = ConsoleProgressBar(prefix, suffix, 1, tilecount, 50, mode='fixed', char='#')
 
 	if os.path.exists( os.path.join(exepath, "watermark.png")):
 		dswatermark = reduce_opacity( Image.open( os.path.join(exepath, "watermark.png")), 0.1 )
@@ -312,12 +324,22 @@ def main(filename, progressbar, rootPath, exepath, zoomifyViewer):
 				dstile.paste( ds, (-x,-y) )
 				write_jpeg(os.path.join(path, zoomify.tilefilename(x/256, y/256, z)), dstile, dswatermark )
 				tileno += 1
-				if progressbar:
-					progressbar.inc()
+				if dialogbar:
+					dialogProgressbar.inc()
 				else:
-					print ".", 
+					consoleProgressbar.increment_amount()
+					consoleProgressbar.print_bar()
+
+				#	print ".", 
 				# gdal.TermProgress_nocb(tileno/tilecount)
 
+
+
+	if dialogbar:
+		del dialogProgressbar
+	else:
+		del consoleProgressbar
+	print
 	#import webbrowser
 	#webbrowser.open_new(os.path.join(path,"index.html"))
 
@@ -327,12 +349,11 @@ def usage():
 	usage
 	"""
 
-def main():
-	import sys
+def main():	
 	import getopt            
 
 	try:
-		opts, args = getopt.getopt(sys.argv[1:], 'zo:', ['output='])
+		opts, args = getopt.getopt(sys.argv[1:], 'hzo:', ['output=', 'help'])
 
 	except getopt.error, msg:
 		print str(msg)
@@ -343,7 +364,6 @@ def main():
 	# without -z => openLayers
 	# with -z => zoomifyViewer
 	zoomifyViewer = False
-	outputPath = None
 	for option, arg in opts:
 		if option in ('--help', '-h'):
 			usage()
@@ -353,13 +373,10 @@ def main():
 		elif option in ('--output', '-o'):
 			outputPath = arg
 			
-
-	print str(outputPath)
-	print str(len(args))
 	dialog_bar = True
 	if len(args) > 0:
 		filenames = args[0:]
-		if not outputPath:
+		if outputPath:
 			dialog_bar = False
 	else:
 		filenames = []
@@ -375,18 +392,17 @@ def main():
 	rootPath = os.path.join(outputPath, 'output')
 	create_root(rootPath, exepath, zoomifyViewer)
 	fileno = len(filenames)
-	i = 0			
+	i = 0		
 	for file in filenames:			
 			if file == None:
 				continue
-			i += 1
-			# Display a progress bar
-			bar = EasyDialogs.ProgressBar("Tiling file %s / %s" % (i, fileno), 100, "Processing the image:\n%s" % file)
-			# TODO: This should run in a different process, so the GUI stays responsible
-			main(file, bar, rootPath, exepath, zoomifyViewer)
-			del bar
+			i += 1		
+			tile(file, dialog_bar, rootPath, exepath, zoomifyViewer, i, fileno)
+
 
 
 
 if __name__ == "__main__":
+	import sys
+	
 	main()
