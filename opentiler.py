@@ -12,7 +12,7 @@ Copyright (c) 2010 Klokan Petr Pridal (www.klokan.cz). All rights reserved.
 """
 import EasyDialogs
 
-#from pil2zoomify import main
+#from pil2zoomify import main 
 #from zoomify import Zoomify
 
 import math, os
@@ -322,28 +322,45 @@ def main(filename, progressbar, rootPath, exepath, zoomifyViewer):
 	#webbrowser.open_new(os.path.join(path,"index.html"))
 
 
-if __name__ == "__main__":
+def usage():
+	print """
+	usage
+	"""
+
+def main():
 	import sys
 	import getopt            
 
 	try:
-		opts, args = getopt.getopt(sys.argv[1:], 'z', [])
+		opts, args = getopt.getopt(sys.argv[1:], 'zo:', ['output='])
 
 	except getopt.error, msg:
 		print str(msg)
+		usage();
 		sys.exit(2)
 
 	exepath = get_exepath()
 	# without -z => openLayers
 	# with -z => zoomifyViewer
 	zoomifyViewer = False
+	outputPath = None
 	for option, arg in opts:
+		if option in ('--help', '-h'):
+			usage()
+			sys.exit()
 		if option in ('-z'):
 			zoomifyViewer = True
+		elif option in ('--output', '-o'):
+			outputPath = arg
+			
 
-
+	print str(outputPath)
+	print str(len(args))
+	dialog_bar = True
 	if len(args) > 0:
 		filenames = args[0:]
+		if not outputPath:
+			dialog_bar = False
 	else:
 		filenames = []
 		try:
@@ -353,8 +370,8 @@ if __name__ == "__main__":
 			if file:
 				filenames.append(file)
 
-
-	outputPath = EasyDialogs.AskFolder("Choose folder for output.")
+	if not outputPath:
+		outputPath = EasyDialogs.AskFolder("Choose folder for output.")
 	rootPath = os.path.join(outputPath, 'output')
 	create_root(rootPath, exepath, zoomifyViewer)
 	fileno = len(filenames)
@@ -368,3 +385,8 @@ if __name__ == "__main__":
 			# TODO: This should run in a different process, so the GUI stays responsible
 			main(file, bar, rootPath, exepath, zoomifyViewer)
 			del bar
+
+
+
+if __name__ == "__main__":
+	main()
