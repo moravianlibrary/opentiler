@@ -200,49 +200,57 @@ def tile(filename, dialogbar, rootPath, exepath, zoomifyViewer, current, total):
 	viewerText = None
 	if zoomifyViewer:
 		viewerText = """<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
-<html><head><META http-equiv="Content-Type" content="text/html; charset=utf-8"></head><body>
-<div>
-<div align="center">
-
-<table border="0" cellpadding="1" cellspacing="0" bgcolor="#000000" width="750" align="CENTER">
-  <tr>
-	<td>
-	  <table border="0" width="100%" bgcolor="#ffffff" cellspacing="0" cellpadding="0">
-		<tr>
-		  <TD>
-		  	  <OBJECT CLASSID="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000" CODEBASE="http://download.macromedia.com/pub/shockwave/cabs/flash/swflash.cab#version=6,0,40,0" WIDTH="750" HEIGHT="450" ID="theMovie">
-                <PARAM NAME="FlashVars" VALUE="zoomifyImagePath=.">
-                <PARAM NAME="MENU" VALUE="FALSE">
-				<PARAM NAME="SRC" VALUE="../ZoomifyViewer.swf">
-                <EMBED FlashVars="zoomifyImagePath=." SRC="../ZoomifyViewer.swf" MENU="false" PLUGINSPAGE="http://www.macromedia.com/shockwave/download/index.cgi?P1_Prod_Version=ShockwaveFlash"  WIDTH="750" HEIGHT="450" NAME="theMovie"></EMBED>
-              </OBJECT></TD>
-		</tr>
-	  </table>
-	</td>
-  </tr>
-</table>
-<table border="0" cellpadding="1" cellspacing="0" bgcolor="#FFFFFF" width="750" align="CENTER">
-  <tr>
-    <td align="Right">
-      <font size="1" face="arial" color="#1A4658">Powered by <a href="http://www.zoomify.com/" target="_blank">Zoomify</a>. Look at project <a href="http://help.oldmapsonline.org/" target="_blank">Old Maps Online.org</a></font>
-    </td>
-
-</tr></table>
-
-</div>
-</div>
-
-</body></html>"""
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+   <title>%s</title>   
+      <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+      <meta http-equiv="content-language" content="en" />
+        <style type="text/css">
+           body {
+	      margin:0;
+	      padding:0;
+           }    
+	   .link {
+	      position:absolute; 
+	      top: 0px; 
+	      left: 0px;
+	      color: #fff;
+	      z-index: -1; 
+	   }           
+        </style>    
+</head>
+<body>
+  <center>
+    <OBJECT CLASSID="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000" CODEBASE="http://download.macromedia.com/pub/shockwave/cabs/flash/swflash.cab#version=6,0,40,0" WIDTH="100%%" HEIGHT="100%%" ID="theMovie">
+      <PARAM NAME="FlashVars" VALUE="zoomifyImagePath=.">
+      <PARAM NAME="MENU" VALUE="FALSE">
+      <PARAM NAME="SRC" VALUE="../ZoomifyViewer.swf">
+	<EMBED FlashVars="zoomifyImagePath=." SRC="../ZoomifyViewer.swf" MENU="false" PLUGINSPAGE="http://www.macromedia.com/shockwave/download/index.cgi?P1_Prod_Version=ShockwaveFlash"  WIDTH="100%%" HEIGHT="100%%" NAME="theMovie"></EMBED>
+    </OBJECT>
+  </center>
+  <a href="http://help.oldmapsonline.org/" class="link">Old Maps Online.org</a>
+</body></html>"""  % (folderName)
 
 	else:
-	      viewerText = """<html xmlns="http://www.w3.org/1999/xhtml">
+	      viewerText = """<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html xmlns="http://www.w3.org/1999/xhtml">
   <head>
-    <style type="text/css">
-      .smallmap {
-	width: 750px;
-	height: 450px;
-      }
-    </style>    
+    <title>%s</title>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+        <meta http-equiv="content-language" content="en" />
+        <style type="text/css">
+           body {
+	      margin:0;
+	      padding:0;
+           }    
+	   .link {
+	      position:absolute; 
+	      top: 0px; 
+	      left: 0px;
+	      color: #fff;
+	      z-index: -1; 
+	   }           
+        </style>    
     <script src="../OpenLayers.js"></script>    
 
 <script type="text/javascript">
@@ -266,33 +274,15 @@ def tile(filename, dialogbar, rootPath, exepath, zoomifyViewer, current, total):
 
     map.setBaseLayer(zoomify);
     map.zoomToMaxExtent();
-};
-    </script>
+  };
+</script>
 
-  </head>
+</head>
   <body onload="init()">
-    <table border="0" cellpadding="1" cellspacing="0" bgcolor="#000000" width="750" align="CENTER">
-      <tr>
-	<td>
-	  <table border="0" width="100%%" bgcolor="#ffffff" cellspacing="0" cellpadding="0">
-	    <tr>
-	      <TD>
-		<div id="map" class="smallmap"></div>
-	      </TD>
-	    </tr>
-	  </table>
-	</td>
-      </tr>
-    </table>
-    <table border="0" cellpadding="1" cellspacing="0" bgcolor="#FFFFFF" width="750" align="CENTER">
-      <tr>
-	<td align="Right">
-	  <font size="1" face="arial" color="#1A4658">Powered by <a href="http://openlayers.org/" target="_blank">OpenLayers</a>. Look at project <a href="http://help.oldmapsonline.org/" target="_blank">Old Maps Online.org</a></font>
-	</td>
-      </tr>
-    </table>
+    <div id="map"></div>
+    <a href="http://help.oldmapsonline.org/" class="link">Old Maps Online.org</a>
   </body>
-</html>""" % (width, height)
+</html>""" % (folderName, width, height)
 
 	f = open(os.path.join(path,"index.html"),'w')
 	f.write(viewerText)
@@ -364,6 +354,8 @@ def main():
 	# without -z => openLayers
 	# with -z => zoomifyViewer
 	zoomifyViewer = False
+	dialog_bar = True
+	outputPath = None
 	for option, arg in opts:
 		if option in ('--help', '-h'):
 			usage()
@@ -372,8 +364,7 @@ def main():
 			zoomifyViewer = True
 		elif option in ('--output', '-o'):
 			outputPath = arg
-			
-	dialog_bar = True
+				
 	if len(args) > 0:
 		filenames = args[0:]
 		if outputPath:
@@ -382,7 +373,7 @@ def main():
 		filenames = []
 		try:
 			filenames = EasyDialogs.AskFileForOpen("Choose one or more files you want to process", multiple=True)
-		except:
+		except:	
 			file = EasyDialogs.AskFileForOpen()
 			if file:
 				filenames.append(file)

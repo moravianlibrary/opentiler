@@ -95,19 +95,3 @@ class ConsoleProgressBar:
  
     def __str__(self):
         return str(self.bar)
-        
-        
-if __name__ == '__main__':
-
-    from progress_bar import ConsoleProgressBar
-    import sys
- 
-    count = 0
-    total = 100000
- 
-    prog = ConsoleProgressBar("bla bla", count, total, 77, mode='fixed', char='#')
-    while count <= total:
-        count += 1
-        prog.increment_amount()
-        prog.print_bar()
-    print
