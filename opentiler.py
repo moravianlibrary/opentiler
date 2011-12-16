@@ -12,11 +12,14 @@ Copyright (c) 2010 Klokan Petr Pridal (www.klokan.cz). All rights reserved.
 """
 import EasyDialogs
 
-#from pil2zoomify import main
+#from pil2zoomify import main 
 #from zoomify import Zoomify
 
 import math, os
 import shutil
+
+from progress_bar import ConsoleProgressBar
+
 
 class Zoomify(object):
 	"""
@@ -158,15 +161,24 @@ def get_exepath():
 	return exepath
 
 
-def main(filename, progressbar, rootPath, exepath, zoomifyViewer):
+
+def tile(filename, dialogbar, rootPath, exepath, zoomifyViewer, current, total):
 	# open input file
 	ds = Image.open(filename)
 	width, height = ds.size	
 	zoomify = Zoomify( width, height )
 	tilecount = zoomify.tileCountUpToTier[zoomify.numberOfTiers]
-
-	if progressbar:
-		progressbar.set(0, tilecount)
+	divider = tilecount // 40
+	
+	
+	if dialogbar:
+		dialogProgressbar = EasyDialogs.ProgressBar("Tiling file %s / %s" % (current, total), 100, "Processing the image:\n%s" % filename)
+		dialogProgressbar.set(0, tilecount)
+	else:
+		prefix = "[" + str(current) + "/" + str(total) + "]"
+		#suffix = filename	
+		suffix = ""
+		consoleProgressbar = ConsoleProgressBar(prefix, suffix, 1, tilecount, 50, mode='fixed', char='#')
 
 	if os.path.exists( os.path.join(exepath, "watermark.png")):
 		dswatermark = reduce_opacity( Image.open( os.path.join(exepath, "watermark.png")), 0.1 )
@@ -188,49 +200,57 @@ def main(filename, progressbar, rootPath, exepath, zoomifyViewer):
 	viewerText = None
 	if zoomifyViewer:
 		viewerText = """<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
-<html><head><META http-equiv="Content-Type" content="text/html; charset=utf-8"></head><body>
-<div>
-<div align="center">
-
-<table border="0" cellpadding="1" cellspacing="0" bgcolor="#000000" width="750" align="CENTER">
-  <tr>
-	<td>
-	  <table border="0" width="100%" bgcolor="#ffffff" cellspacing="0" cellpadding="0">
-		<tr>
-		  <TD>
-		  	  <OBJECT CLASSID="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000" CODEBASE="http://download.macromedia.com/pub/shockwave/cabs/flash/swflash.cab#version=6,0,40,0" WIDTH="750" HEIGHT="450" ID="theMovie">
-                <PARAM NAME="FlashVars" VALUE="zoomifyImagePath=.">
-                <PARAM NAME="MENU" VALUE="FALSE">
-				<PARAM NAME="SRC" VALUE="../ZoomifyViewer.swf">
-                <EMBED FlashVars="zoomifyImagePath=." SRC="../ZoomifyViewer.swf" MENU="false" PLUGINSPAGE="http://www.macromedia.com/shockwave/download/index.cgi?P1_Prod_Version=ShockwaveFlash"  WIDTH="750" HEIGHT="450" NAME="theMovie"></EMBED>
-              </OBJECT></TD>
-		</tr>
-	  </table>
-	</td>
-  </tr>
-</table>
-<table border="0" cellpadding="1" cellspacing="0" bgcolor="#FFFFFF" width="750" align="CENTER">
-  <tr>
-    <td align="Right">
-      <font size="1" face="arial" color="#1A4658">Powered by <a href="http://www.zoomify.com/" target="_blank">Zoomify</a>. Look at project <a href="http://help.oldmapsonline.org/" target="_blank">Old Maps Online.org</a></font>
-    </td>
-
-</tr></table>
-
-</div>
-</div>
-
-</body></html>"""
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+   <title>%s</title>   
+      <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+      <meta http-equiv="content-language" content="en" />
+        <style type="text/css">
+           body {
+	      margin:0;
+	      padding:0;
+           }    
+	   .link {
+	      position:absolute; 
+	      top: 0px; 
+	      left: 0px;
+	      color: #fff;
+	      z-index: -1; 
+	   }           
+        </style>    
+</head>
+<body>
+  <center>
+    <OBJECT CLASSID="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000" CODEBASE="http://download.macromedia.com/pub/shockwave/cabs/flash/swflash.cab#version=6,0,40,0" WIDTH="100%%" HEIGHT="100%%" ID="theMovie">
+      <PARAM NAME="FlashVars" VALUE="zoomifyImagePath=.">
+      <PARAM NAME="MENU" VALUE="FALSE">
+      <PARAM NAME="SRC" VALUE="../ZoomifyViewer.swf">
+	<EMBED FlashVars="zoomifyImagePath=." SRC="../ZoomifyViewer.swf" MENU="false" PLUGINSPAGE="http://www.macromedia.com/shockwave/download/index.cgi?P1_Prod_Version=ShockwaveFlash"  WIDTH="100%%" HEIGHT="100%%" NAME="theMovie"></EMBED>
+    </OBJECT>
+  </center>
+  <a href="http://help.oldmapsonline.org/" class="link">Old Maps Online.org</a>
+</body></html>"""  % (folderName)
 
 	else:
-	      viewerText = """<html xmlns="http://www.w3.org/1999/xhtml">
+	      viewerText = """<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html xmlns="http://www.w3.org/1999/xhtml">
   <head>
-    <style type="text/css">
-      .smallmap {
-	width: 750px;
-	height: 450px;
-      }
-    </style>    
+    <title>%s</title>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+        <meta http-equiv="content-language" content="en" />
+        <style type="text/css">
+           body {
+	      margin:0;
+	      padding:0;
+           }    
+	   .link {
+	      position:absolute; 
+	      top: 0px; 
+	      left: 0px;
+	      color: #fff;
+	      z-index: -1; 
+	   }           
+        </style>    
     <script src="../OpenLayers.js"></script>    
 
 <script type="text/javascript">
@@ -254,33 +274,15 @@ def main(filename, progressbar, rootPath, exepath, zoomifyViewer):
 
     map.setBaseLayer(zoomify);
     map.zoomToMaxExtent();
-};
-    </script>
+  };
+</script>
 
-  </head>
+</head>
   <body onload="init()">
-    <table border="0" cellpadding="1" cellspacing="0" bgcolor="#000000" width="750" align="CENTER">
-      <tr>
-	<td>
-	  <table border="0" width="100%%" bgcolor="#ffffff" cellspacing="0" cellpadding="0">
-	    <tr>
-	      <TD>
-		<div id="map" class="smallmap"></div>
-	      </TD>
-	    </tr>
-	  </table>
-	</td>
-      </tr>
-    </table>
-    <table border="0" cellpadding="1" cellspacing="0" bgcolor="#FFFFFF" width="750" align="CENTER">
-      <tr>
-	<td align="Right">
-	  <font size="1" face="arial" color="#1A4658">Powered by <a href="http://openlayers.org/" target="_blank">OpenLayers</a>. Look at project <a href="http://help.oldmapsonline.org/" target="_blank">Old Maps Online.org</a></font>
-	</td>
-      </tr>
-    </table>
+    <div id="map"></div>
+    <a href="http://help.oldmapsonline.org/" class="link">Old Maps Online.org</a>
   </body>
-</html>""" % (width, height)
+</html>""" % (folderName, width, height)
 
 	f = open(os.path.join(path,"index.html"),'w')
 	f.write(viewerText)
@@ -312,59 +314,86 @@ def main(filename, progressbar, rootPath, exepath, zoomifyViewer):
 				dstile.paste( ds, (-x,-y) )
 				write_jpeg(os.path.join(path, zoomify.tilefilename(x/256, y/256, z)), dstile, dswatermark )
 				tileno += 1
-				if progressbar:
-					progressbar.inc()
+				if dialogbar:
+					dialogProgressbar.inc()
 				else:
-					print ".", 
+					consoleProgressbar.increment_amount()
+					consoleProgressbar.print_bar()
+
+				#	print ".", 
 				# gdal.TermProgress_nocb(tileno/tilecount)
 
+
+
+	if dialogbar:
+		del dialogProgressbar
+	else:
+		del consoleProgressbar
+	print
 	#import webbrowser
 	#webbrowser.open_new(os.path.join(path,"index.html"))
 
 
-if __name__ == "__main__":
-	import sys
+def usage():
+	print """
+	usage
+	"""
+
+def main():	
 	import getopt            
 
 	try:
-		opts, args = getopt.getopt(sys.argv[1:], 'z', [])
+		opts, args = getopt.getopt(sys.argv[1:], 'hzo:', ['output=', 'help'])
 
 	except getopt.error, msg:
 		print str(msg)
+		usage();
 		sys.exit(2)
 
 	exepath = get_exepath()
 	# without -z => openLayers
 	# with -z => zoomifyViewer
 	zoomifyViewer = False
+	dialog_bar = True
+	outputPath = None
 	for option, arg in opts:
+		if option in ('--help', '-h'):
+			usage()
+			sys.exit()
 		if option in ('-z'):
 			zoomifyViewer = True
-
-
+		elif option in ('--output', '-o'):
+			outputPath = arg
+				
 	if len(args) > 0:
 		filenames = args[0:]
+		if outputPath:
+			dialog_bar = False
 	else:
 		filenames = []
 		try:
 			filenames = EasyDialogs.AskFileForOpen("Choose one or more files you want to process", multiple=True)
-		except:
+		except:	
 			file = EasyDialogs.AskFileForOpen()
 			if file:
 				filenames.append(file)
 
-
-	outputPath = EasyDialogs.AskFolder("Choose folder for output.")
+	if not outputPath:
+		outputPath = EasyDialogs.AskFolder("Choose folder for output.")
 	rootPath = os.path.join(outputPath, 'output')
 	create_root(rootPath, exepath, zoomifyViewer)
 	fileno = len(filenames)
-	i = 0			
+	i = 0		
 	for file in filenames:			
 			if file == None:
 				continue
-			i += 1
-			# Display a progress bar
-			bar = EasyDialogs.ProgressBar("Tiling file %s / %s" % (i, fileno), 100, "Processing the image:\n%s" % file)
-			# TODO: This should run in a different process, so the GUI stays responsible
-			main(file, bar, rootPath, exepath, zoomifyViewer)
-			del bar
+			i += 1		
+			tile(file, dialog_bar, rootPath, exepath, zoomifyViewer, i, fileno)
+
+
+
+
+if __name__ == "__main__":
+	import sys
+	
+	main()
