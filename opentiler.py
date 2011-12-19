@@ -336,14 +336,20 @@ def tile(filename, dialogbar, rootPath, exepath, zoomifyViewer, current, total):
 
 def usage():
 	print """
-	usage
+    usage: python opentiler.py [OPTION]... [FILE]...
+
+    options:
+        -z, --zoomify             use Zoomify Viewer instead of OpenLayers
+        -h, --help                display this help and exit
+	-o, --output <STRING>     path to the output directory
+	
 	"""
 
 def main():	
 	import getopt            
 
 	try:
-		opts, args = getopt.getopt(sys.argv[1:], 'hzo:', ['output=', 'help'])
+		opts, args = getopt.getopt(sys.argv[1:], 'hzo:', ['output=', 'help', 'zoomify'])
 
 	except getopt.error, msg:
 		print str(msg)
@@ -360,7 +366,7 @@ def main():
 		if option in ('--help', '-h'):
 			usage()
 			sys.exit()
-		if option in ('-z'):
+		if option in ('--zoomify', '-z'):
 			zoomifyViewer = True
 		elif option in ('--output', '-o'):
 			outputPath = arg
